@@ -5,3 +5,10 @@ type Link struct {
 	URL   string
 	Short string
 }
+
+type UserAgentStats struct {
+	UserAgent string
+	Count     int
+}
+
+type LinkStatistics []UserAgentStats

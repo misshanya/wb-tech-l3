@@ -3,8 +3,10 @@ package link
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/misshanya/wb-tech-l3/url-shortener/internal/errorz"
+	"github.com/misshanya/wb-tech-l3/url-shortener/internal/models"
 	"github.com/misshanya/wb-tech-l3/url-shortener/internal/transport/http/dto"
 	"github.com/wb-go/wbf/ginext"
 	"github.com/wb-go/wbf/zlog"
@@ -13,7 +15,12 @@ import (
 func (h *handler) Redirect(c *ginext.Context) {
 	shortCode := c.Param("short")
 
-	url, err := h.service.GetURLByShort(c.Request.Context(), shortCode)
+	clickInfo := &models.Click{
+		IPAddress: c.ClientIP(),
+		UserAgent: c.Request.UserAgent(),
+		ClickedAt: time.Now(),
+	}
+	url, err := h.service.GetURLByShort(c.Request.Context(), shortCode, clickInfo)
 	switch {
 	case errors.Is(err, errorz.LinkNotFound):
 		zlog.Logger.Warn().

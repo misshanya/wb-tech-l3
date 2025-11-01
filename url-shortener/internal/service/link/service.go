@@ -10,6 +10,9 @@ type repo interface {
 	Create(ctx context.Context, url string) (*models.Link, error)
 	Get(ctx context.Context, id int64) (*models.Link, error)
 	GetIDByURL(ctx context.Context, url string) (int64, error)
+
+	AddClick(ctx context.Context, click *models.Click) (*models.Click, error)
+	GetLinkStatistics(ctx context.Context, linkID int64) (models.LinkStatistics, error)
 }
 
 type service struct {
