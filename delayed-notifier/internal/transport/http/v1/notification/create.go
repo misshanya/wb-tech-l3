@@ -59,6 +59,7 @@ func (h *handler) Create(c *ginext.Context) {
 		Content:     notification.Content,
 		Channel:     notification.Channel,
 		Receiver:    notification.Receiver,
+		Status:      string(notification.Status),
 	}
 	c.JSON(http.StatusCreated, resp)
 }
