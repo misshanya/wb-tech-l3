@@ -12,21 +12,24 @@ type repo interface {
 	UpdateStatus(ctx context.Context, id uuid.UUID, status models.NotificationStatus) error
 }
 
-type telegramSender interface {
+type sender interface {
 	SendNotification(ctx context.Context, title, content, receiver string) error
 }
 
 type Service struct {
-	telegramSender telegramSender
+	telegramSender sender
+	ntfySender     sender
 	repo           repo
 }
 
 func New(
-	telegramSender telegramSender,
+	telegramSender sender,
+	ntfySender sender,
 	repo repo,
 ) *Service {
 	return &Service{
 		telegramSender: telegramSender,
+		ntfySender:     ntfySender,
 		repo:           repo,
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/misshanya/wb-tech-l3/delayed-notifier/internal/config"
 	"github.com/misshanya/wb-tech-l3/delayed-notifier/internal/db/ent"
+	ntfysender "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/infra/ntfy/notification"
 	producer "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/infra/rabbitmq/producer/notification"
 	telegramsender "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/infra/telegram/notification"
 	notificationrepo "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/repository/notification"
@@ -34,6 +35,7 @@ type App struct {
 	ginextEngine     *ginext.Engine
 	httpSrv          *http.Server
 	telegramSender   *telegramsender.Sender
+	ntfySender       *ntfysender.Sender
 	pgConn           *dbpg.DB
 	entClient        *ent.Client
 }
@@ -53,6 +55,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 
 	a.initTelegramSender()
+	a.initNtfySender()
 
 	if err := a.initDB(); err != nil {
 		return nil, fmt.Errorf("failed to init db: %w", err)
@@ -64,7 +67,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	repo := notificationrepo.New(a.entClient)
 
-	notificationProc := notificationprocessor.New(a.telegramSender, repo)
+	notificationProc := notificationprocessor.New(a.telegramSender, a.ntfySender, repo)
 	if err := a.initRabbitMQConsumer(notificationProc); err != nil {
 		return nil, fmt.Errorf("failed to init rabbitmq consumer: %w", err)
 	}
@@ -182,6 +185,18 @@ func (a *App) initTelegramSender() {
 		a.cfg.TelegramSender.Retry.Backoff,
 	)
 	a.telegramSender = s
+}
+
+func (a *App) initNtfySender() {
+	httpClient := &http.Client{}
+	s := ntfysender.New(
+		httpClient,
+		a.cfg.NtfySender.URL,
+		a.cfg.NtfySender.Retry.Attempts,
+		a.cfg.NtfySender.Retry.Delay,
+		a.cfg.NtfySender.Retry.Backoff,
+	)
+	a.ntfySender = s
 }
 
 func (a *App) initDB() error {

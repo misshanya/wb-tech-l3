@@ -1,5 +1,6 @@
 volumes:
   pg_data:
+  ntfy_config:
 
 services:
   service:
@@ -35,6 +36,11 @@ services:
       TELEGRAM_SENDER_RETRY_BACKOFF: "${TELEGRAM_SENDER_RETRY_BACKOFF}"
       TELEGRAM_SENDER_BOT_API_TOKEN: "${TELEGRAM_SENDER_BOT_API_TOKEN}"
 
+      NTFY_SENDER_RETRY_ATTEMPTS: "${NTFY_SENDER_RETRY_ATTEMPTS}"
+      NTFY_SENDER_RETRY_DELAY: "${NTFY_SENDER_RETRY_DELAY}"
+      NTFY_SENDER_RETRY_BACKOFF: "${NTFY_SENDER_RETRY_BACKOFF}"
+      NTFY_SENDER_URL: "http://ntfy"
+
       POSTGRES_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
       POSTGRES_MAX_OPEN_CONNS: "${POSTGRES_MAX_OPEN_CONNS}"
       POSTGRES_MAX_IDLE_CONNS: "${POSTGRES_MAX_IDLE_CONNS}"
@@ -69,3 +75,23 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  ntfy:
+    container_name: delayed-notifier_ntfy
+    image: binwiederhier/ntfy:v2.14
+    command:
+      - serve
+    environment:
+      - TZ=Europe/Moscow
+    volumes:
+      - ntfy_config:/etc/ntfy
+    restart: unless-stopped
+    ports:
+      - "${NTFY_EXTERNAL_PORT}:80"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1" ]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    init: true

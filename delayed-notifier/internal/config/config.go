@@ -10,6 +10,7 @@ type Config struct {
 	Server         server
 	RabbitMQ       rabbitmq
 	TelegramSender telegramSender
+	NtfySender     ntfySender
 	Postgres       postgres
 }
 
@@ -31,6 +32,11 @@ type sender struct {
 type telegramSender struct {
 	sender
 	BotApiToken string
+}
+
+type ntfySender struct {
+	sender
+	URL string
 }
 
 type rabbitmq struct {
@@ -102,6 +108,16 @@ func New() *Config {
 				},
 			},
 			BotApiToken: c.GetString("telegram.sender.bot_api_token"),
+		},
+		NtfySender: ntfySender{
+			sender: sender{
+				Retry: retry{
+					Attempts: c.GetInt("ntfy.sender.retry.attempts"),
+					Delay:    c.GetDuration("ntfy.sender.retry.delay"),
+					Backoff:  c.GetFloat64("ntfy.sender.retry.backoff"),
+				},
+			},
+			URL: c.GetString("ntfy.sender.url"),
 		},
 		Postgres: postgres{
 			URL:             c.GetString("postgres.url"),

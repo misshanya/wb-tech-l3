@@ -27,6 +27,8 @@ func (s *Service) ProcessNotification(ctx context.Context, notification *events.
 	switch notification.Channel {
 	case "telegram":
 		err = s.telegramSender.SendNotification(ctx, notification.Title, notification.Content, notification.Receiver)
+	case "ntfy":
+		err = s.ntfySender.SendNotification(ctx, notification.Title, notification.Content, notification.Receiver)
 	default:
 		return errorz.ChannelNotFoundError
 	}
