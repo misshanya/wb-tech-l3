@@ -18,5 +18,5 @@ func (s *Service) Create(ctx context.Context, n *models.Notification) (*models.N
 		return nil, fmt.Errorf("failed to send notification: %w", err)
 	}
 
-	return n, nil
+	return notification, nil
 }
