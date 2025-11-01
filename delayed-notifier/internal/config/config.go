@@ -10,10 +10,18 @@ type Config struct {
 	Server         server
 	RabbitMQ       rabbitmq
 	TelegramSender telegramSender
+	Postgres       postgres
 }
 
 type server struct {
 	Addr string
+}
+
+type postgres struct {
+	URL             string
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
 }
 
 type sender struct {
@@ -94,6 +102,12 @@ func New() *Config {
 				},
 			},
 			BotApiToken: c.GetString("telegram.sender.bot_api_token"),
+		},
+		Postgres: postgres{
+			URL:             c.GetString("postgres.url"),
+			MaxOpenConns:    c.GetInt("postgres.max_open_conns"),
+			MaxIdleConns:    c.GetInt("postgres.max_idle_conns"),
+			ConnMaxLifetime: c.GetDuration("postgres.conn_max_lifetime"),
 		},
 	}
 

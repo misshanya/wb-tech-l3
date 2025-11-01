@@ -16,7 +16,7 @@ func main() {
 
 	cfg := config.New()
 
-	a, err := app.New(cfg)
+	a, err := app.New(context.Background(), cfg)
 	if err != nil {
 		zlog.Logger.Error().
 			Err(err).
@@ -28,7 +28,7 @@ func main() {
 	defer stop()
 
 	errChan := make(chan error)
-	go a.Start(ctx, errChan)
+	go a.Start(errChan)
 
 	select {
 	case err := <-errChan:

@@ -1,3 +1,6 @@
+volumes:
+  pg_data:
+
 services:
   service:
     container_name: delayed-notifier
@@ -31,7 +34,15 @@ services:
       TELEGRAM_SENDER_RETRY_DELAY: "${TELEGRAM_SENDER_RETRY_DELAY}"
       TELEGRAM_SENDER_RETRY_BACKOFF: "${TELEGRAM_SENDER_RETRY_BACKOFF}"
       TELEGRAM_SENDER_BOT_API_TOKEN: "${TELEGRAM_SENDER_BOT_API_TOKEN}"
+
+      POSTGRES_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      POSTGRES_MAX_OPEN_CONNS: "${POSTGRES_MAX_OPEN_CONNS}"
+      POSTGRES_MAX_IDLE_CONNS: "${POSTGRES_MAX_IDLE_CONNS}"
+      POSTGRES_CONN_MAX_LIFETIME: "${POSTGRES_CONN_MAX_LIFETIME}"
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   rabbitmq:
     container_name: delayed-notifier_rabbitmq
@@ -41,3 +52,20 @@ services:
       - "5672:5672"
       - "15672:15672"
     restart: unless-stopped
+
+  postgres:
+    container_name: delayed-notifier_postgres
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    volumes:
+      - pg_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

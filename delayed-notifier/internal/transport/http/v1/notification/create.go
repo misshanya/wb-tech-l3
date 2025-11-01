@@ -40,7 +40,7 @@ func (h *handler) Create(c *ginext.Context) {
 		Channel:     body.Channel,
 		Receiver:    body.Receiver,
 	}
-	notification, err := h.service.Create(n)
+	notification, err := h.service.Create(c.Request.Context(), n)
 	if err != nil {
 		zlog.Logger.Error().Err(err).Msg("create notification")
 		c.JSON(http.StatusInternalServerError, &dto.HTTPStatus{

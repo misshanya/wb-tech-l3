@@ -13,6 +13,7 @@ type Notification struct {
 	Content     string    `json:"content"`
 	Channel     string    `json:"channel"`
 	Receiver    string    `json:"receiver"`
+	Status      string    `json:"status"`
 }
 
 type NotificationCreateRequest struct {

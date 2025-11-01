@@ -5,14 +5,19 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/gin-gonic/gin"
 	"github.com/misshanya/wb-tech-l3/delayed-notifier/internal/config"
+	"github.com/misshanya/wb-tech-l3/delayed-notifier/internal/db/ent"
 	producer "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/infra/rabbitmq/producer/notification"
 	telegramsender "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/infra/telegram/notification"
+	notificationrepo "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/repository/notification"
 	notificationservice "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/service/notification"
 	notificationprocessor "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/service/notification_processor"
 	handler "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/transport/http/v1/notification"
 	consumer "github.com/misshanya/wb-tech-l3/delayed-notifier/internal/transport/rabbitmq/consumer/notification"
+	"github.com/wb-go/wbf/dbpg"
 	"github.com/wb-go/wbf/ginext"
 	"github.com/wb-go/wbf/zlog"
 
@@ -29,10 +34,12 @@ type App struct {
 	ginextEngine     *ginext.Engine
 	httpSrv          *http.Server
 	telegramSender   *telegramsender.Sender
+	pgConn           *dbpg.DB
+	entClient        *ent.Client
 }
 
 // New creates and initializes a new instance of App
-func New(cfg *config.Config) (*App, error) {
+func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	a := &App{
 		cfg: cfg,
 	}
@@ -47,12 +54,22 @@ func New(cfg *config.Config) (*App, error) {
 
 	a.initTelegramSender()
 
-	notificationProc := notificationprocessor.New(a.telegramSender)
+	if err := a.initDB(); err != nil {
+		return nil, fmt.Errorf("failed to init db: %w", err)
+	}
+
+	if err := a.migrateDB(ctx); err != nil {
+		return nil, fmt.Errorf("failed to migrate db: %w", err)
+	}
+
+	repo := notificationrepo.New(a.entClient)
+
+	notificationProc := notificationprocessor.New(a.telegramSender, repo)
 	if err := a.initRabbitMQConsumer(notificationProc); err != nil {
 		return nil, fmt.Errorf("failed to init rabbitmq consumer: %w", err)
 	}
+	svc := notificationservice.New(a.rabbitMQProducer, repo)
 
-	svc := notificationservice.New(a.rabbitMQProducer)
 	h := handler.New(svc)
 
 	a.initGinext()
@@ -65,7 +82,7 @@ func New(cfg *config.Config) (*App, error) {
 }
 
 // Start performs a start of all functional services
-func (a *App) Start(ctx context.Context, errChan chan<- error) {
+func (a *App) Start(errChan chan<- error) {
 	zlog.Logger.Info().Msg("starting...")
 	go a.rabbitMQConsumer.ConsumeMessages()
 	if err := a.httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -165,6 +182,26 @@ func (a *App) initTelegramSender() {
 		a.cfg.TelegramSender.Retry.Backoff,
 	)
 	a.telegramSender = s
+}
+
+func (a *App) initDB() error {
+	db, err := dbpg.New(a.cfg.Postgres.URL, nil, &dbpg.Options{
+		MaxOpenConns:    a.cfg.Postgres.MaxOpenConns,
+		MaxIdleConns:    a.cfg.Postgres.MaxIdleConns,
+		ConnMaxLifetime: a.cfg.Postgres.ConnMaxLifetime,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to open database: %w", err)
+	}
+
+	drv := entsql.OpenDB(dialect.Postgres, db.Master)
+	a.entClient = ent.NewClient(ent.Driver(drv))
+
+	return nil
+}
+
+func (a *App) migrateDB(ctx context.Context) error {
+	return a.entClient.Schema.Create(ctx)
 }
 
 func (a *App) initGinext() {
