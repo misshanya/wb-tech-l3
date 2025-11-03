@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/misshanya/wb-tech-l3/comment-tree/internal/db/ent"
+	"github.com/misshanya/wb-tech-l3/comment-tree/internal/errorz"
 	"github.com/misshanya/wb-tech-l3/comment-tree/internal/models"
 	"github.com/misshanya/wb-tech-l3/comment-tree/internal/repository/mappers"
 )
@@ -26,6 +28,9 @@ func (r *repo) Create(ctx context.Context, c *models.Comment) (*models.Comment, 
 
 	comment, err := commentCreate.Save(ctx)
 	if err != nil {
+		if ent.IsConstraintError(err) {
+			return nil, errorz.CommentNotFound
+		}
 		return nil, fmt.Errorf("failed to save comment: %w", err)
 	}
 

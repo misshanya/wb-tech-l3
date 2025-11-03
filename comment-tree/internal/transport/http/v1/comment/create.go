@@ -1,6 +1,7 @@
 package comment
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin/binding"
@@ -36,6 +37,13 @@ func (h *handler) Create(c *ginext.Context) {
 	}
 	comment, err := h.service.Create(c.Request.Context(), commentInput)
 	if err != nil {
+		if errors.Is(err, errorz.CommentNotFound) {
+			c.JSON(http.StatusNotFound, &dto.HTTPStatus{
+				Code:    http.StatusNotFound,
+				Message: err.Error(),
+			})
+			return
+		}
 		zlog.Logger.Error().Err(err).Msg("failed to create comment")
 		c.JSON(http.StatusInternalServerError, &dto.HTTPStatus{
 			Code:    http.StatusInternalServerError,
