@@ -1,11 +1,16 @@
 package comment
 
-import "github.com/misshanya/wb-tech-l3/comment-tree/internal/db/ent"
+import (
+	"database/sql"
+
+	"github.com/misshanya/wb-tech-l3/comment-tree/internal/db/sqlc/storage"
+)
 
 type repo struct {
-	client *ent.Client
+	dbConn  *sql.DB
+	queries *storage.Queries
 }
 
-func New(client *ent.Client) *repo {
-	return &repo{client: client}
+func New(dbConn *sql.DB, queries *storage.Queries) *repo {
+	return &repo{dbConn: dbConn, queries: queries}
 }

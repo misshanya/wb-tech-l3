@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"entgo.io/ent/dialect"
-	entsql "entgo.io/ent/dialect/sql"
 	"github.com/gin-gonic/gin"
 	"github.com/misshanya/wb-tech-l3/comment-tree/internal/config"
-	"github.com/misshanya/wb-tech-l3/comment-tree/internal/db/ent"
+	"github.com/misshanya/wb-tech-l3/comment-tree/internal/db"
+	"github.com/misshanya/wb-tech-l3/comment-tree/internal/db/sqlc/storage"
 	commentrepo "github.com/misshanya/wb-tech-l3/comment-tree/internal/repository/comment"
 	commentservice "github.com/misshanya/wb-tech-l3/comment-tree/internal/service/comment"
 	commenthandler "github.com/misshanya/wb-tech-l3/comment-tree/internal/transport/http/v1/comment"
@@ -24,7 +23,6 @@ type App struct {
 	ginextEngine *ginext.Engine
 	httpSrv      *http.Server
 	pgConn       *dbpg.DB
-	entClient    *ent.Client
 }
 
 // New creates and initializes a new instance of App
@@ -37,11 +35,12 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("failed to init db: %w", err)
 	}
 
-	if err := a.migrateDB(ctx); err != nil {
+	if err := a.migrateDB(); err != nil {
 		return nil, fmt.Errorf("failed to migrate db: %w", err)
 	}
 
-	commentRepo := commentrepo.New(a.entClient)
+	queries := storage.New(a.pgConn.Master)
+	commentRepo := commentrepo.New(a.pgConn.Master, queries)
 	commentService := commentservice.New(commentRepo)
 	commentHandler := commenthandler.New(commentService)
 
@@ -73,7 +72,7 @@ func (a *App) Stop() error {
 	}
 
 	zlog.Logger.Info().Msg("Closing db connection...")
-	if err := a.entClient.Close(); err != nil {
+	if err := a.pgConn.Master.Close(); err != nil {
 		stopErr = errors.Join(stopErr, fmt.Errorf("failed to close db connection: %w", err))
 	}
 
@@ -95,14 +94,13 @@ func (a *App) initDB() error {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 
-	drv := entsql.OpenDB(dialect.Postgres, db.Master)
-	a.entClient = ent.NewClient(ent.Driver(drv))
+	a.pgConn = db
 
 	return nil
 }
 
-func (a *App) migrateDB(ctx context.Context) error {
-	return a.entClient.Schema.Create(ctx)
+func (a *App) migrateDB() error {
+	return db.Migrate(a.pgConn.Master)
 }
 
 func (a *App) initGinext() {
