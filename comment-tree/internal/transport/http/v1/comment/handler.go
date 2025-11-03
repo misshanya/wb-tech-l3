@@ -29,6 +29,6 @@ func New(s service) *handler {
 
 func (h *handler) Setup(group *ginext.RouterGroup) {
 	group.POST("/", h.Create)
-	group.GET("/:id", h.Get)
+	group.GET("/", h.Get)
 	group.DELETE("/:id", h.Delete)
 }

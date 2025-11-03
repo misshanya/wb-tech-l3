@@ -12,7 +12,7 @@ import (
 )
 
 func (h *handler) Get(c *ginext.Context) {
-	idStr := c.Param("id")
+	idStr := c.Query("parent")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, &dto.HTTPStatus{
