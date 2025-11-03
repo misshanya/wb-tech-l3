@@ -16,7 +16,7 @@ func main() {
 
 	cfg := config.New()
 
-	a, err := app.New(context.Background(), cfg)
+	a, err := app.New(cfg)
 	if err != nil {
 		zlog.Logger.Error().
 			Err(err).

@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -26,7 +25,7 @@ type App struct {
 }
 
 // New creates and initializes a new instance of App
-func New(ctx context.Context, cfg *config.Config) (*App, error) {
+func New(cfg *config.Config) (*App, error) {
 	a := &App{
 		cfg: cfg,
 	}
