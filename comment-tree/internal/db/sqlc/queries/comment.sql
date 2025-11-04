@@ -14,7 +14,8 @@ LIMIT 1;
 
 -- name: GetDerivatives :many
 SELECT * FROM comment
-WHERE path LIKE concat($1::text, '%');
+WHERE path LIKE concat($1::text, '%')
+LIMIT $2 OFFSET $3;
 
 -- name: UpdateCommentPath :exec
 UPDATE comment
@@ -32,4 +33,4 @@ WHERE
 OR
     to_tsvector('english', content) @@ plainto_tsquery('english', $1)
 ORDER BY created_at DESC
-LIMIT 20;
+LIMIT $2 OFFSET $3;

@@ -2,7 +2,9 @@ package comment
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/misshanya/wb-tech-l3/comment-tree/internal/errorz"
@@ -22,7 +24,52 @@ func (h *handler) Get(c *ginext.Context) {
 		return
 	}
 
-	comments, err := h.service.Get(c.Request.Context(), id)
+	var limit, offset int32
+	if c.Query("limit") != "" {
+		limit64, err := strconv.Atoi(c.Query("limit"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, &dto.HTTPStatus{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+			})
+			return
+		}
+		limit = int32(limit64)
+	} else {
+		limit = 20
+	}
+
+	if limit < 0 {
+		c.JSON(http.StatusBadRequest, &dto.HTTPStatus{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Sprint("limit must be greater or equal than 0"),
+		})
+		return
+	}
+
+	if c.Query("page") != "" {
+		page, err := strconv.Atoi(c.Query("page"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, &dto.HTTPStatus{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+			})
+			return
+		}
+		offset = (int32(page) - 1) * limit
+	} else {
+		offset = 0
+	}
+
+	if offset < 0 {
+		c.JSON(http.StatusBadRequest, &dto.HTTPStatus{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Sprint("page must be greater or equal than 1"),
+		})
+		return
+	}
+
+	comments, err := h.service.Get(c.Request.Context(), id, limit, offset)
 	if err != nil {
 		if errors.Is(err, errorz.CommentNotFound) {
 			zlog.Logger.Warn().Any("id", id).Msg("comment not found")

@@ -11,9 +11,9 @@ import (
 
 type service interface {
 	Create(ctx context.Context, c *models.Comment) (*models.Comment, error)
-	Get(ctx context.Context, id uuid.UUID) ([]*models.Comment, error)
+	Get(ctx context.Context, id uuid.UUID, limit, offset int32) ([]*models.Comment, error)
 	Delete(ctx context.Context, id uuid.UUID) error
-	Search(ctx context.Context, query string) ([]*models.Comment, error)
+	Search(ctx context.Context, query string, limit, offset int32) ([]*models.Comment, error)
 }
 
 type handler struct {

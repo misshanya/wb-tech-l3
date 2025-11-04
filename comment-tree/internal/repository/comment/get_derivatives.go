@@ -7,11 +7,12 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/misshanya/wb-tech-l3/comment-tree/internal/db/sqlc/storage"
 	"github.com/misshanya/wb-tech-l3/comment-tree/internal/errorz"
 	"github.com/misshanya/wb-tech-l3/comment-tree/internal/models"
 )
 
-func (r *repo) GetDerivatives(ctx context.Context, id uuid.UUID) ([]*models.Comment, error) {
+func (r *repo) GetDerivatives(ctx context.Context, id uuid.UUID, limit, offset int32) ([]*models.Comment, error) {
 	parentPath, err := r.queries.GetPathByCommentID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -24,7 +25,13 @@ func (r *repo) GetDerivatives(ctx context.Context, id uuid.UUID) ([]*models.Comm
 		return []*models.Comment{}, errorz.CommentNotFound
 	}
 
-	derivatives, err := r.queries.GetDerivatives(ctx, parentPath.String)
+	derivatives, err := r.queries.GetDerivatives(ctx,
+		storage.GetDerivativesParams{
+			Column1: parentPath.String,
+			Limit:   limit,
+			Offset:  offset,
+		},
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []*models.Comment{}, errorz.CommentNotFound

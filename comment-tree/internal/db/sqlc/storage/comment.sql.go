@@ -53,10 +53,17 @@ func (q *Queries) DeleteComment(ctx context.Context, dollar_1 string) error {
 const getDerivatives = `-- name: GetDerivatives :many
 SELECT id, content, parent_id, path, created_at FROM comment
 WHERE path LIKE concat($1::text, '%')
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) GetDerivatives(ctx context.Context, dollar_1 string) ([]Comment, error) {
-	rows, err := q.db.QueryContext(ctx, getDerivatives, dollar_1)
+type GetDerivativesParams struct {
+	Column1 string
+	Limit   int32
+	Offset  int32
+}
+
+func (q *Queries) GetDerivatives(ctx context.Context, arg GetDerivativesParams) ([]Comment, error) {
+	rows, err := q.db.QueryContext(ctx, getDerivatives, arg.Column1, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -104,11 +111,17 @@ WHERE
 OR
     to_tsvector('english', content) @@ plainto_tsquery('english', $1)
 ORDER BY created_at DESC
-LIMIT 20
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) SearchComments(ctx context.Context, plaintoTsquery string) ([]Comment, error) {
-	rows, err := q.db.QueryContext(ctx, searchComments, plaintoTsquery)
+type SearchCommentsParams struct {
+	PlaintoTsquery string
+	Limit          int32
+	Offset         int32
+}
+
+func (q *Queries) SearchComments(ctx context.Context, arg SearchCommentsParams) ([]Comment, error) {
+	rows, err := q.db.QueryContext(ctx, searchComments, arg.PlaintoTsquery, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
