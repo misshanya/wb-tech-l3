@@ -23,3 +23,7 @@ type CommentCreateResponse Comment
 type CommentsGetResponse struct {
 	Comments []*Comment `json:"comments"`
 }
+
+type CommentsSearchResponse struct {
+	Comments []*Comment `json:"comments"`
+}

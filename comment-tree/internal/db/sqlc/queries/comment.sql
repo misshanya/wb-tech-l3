@@ -24,3 +24,12 @@ WHERE id = $2;
 -- name: DeleteComment :exec
 DELETE FROM comment
 WHERE path LIKE concat($1::text, '%');
+
+-- name: SearchComments :many
+SELECT * FROM comment
+WHERE
+    to_tsvector('russian', content) @@ plainto_tsquery('russian', $1)
+OR
+    to_tsvector('english', content) @@ plainto_tsquery('english', $1)
+ORDER BY created_at DESC
+LIMIT 20;

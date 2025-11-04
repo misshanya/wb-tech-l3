@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS comment (
     path TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE INDEX idx_content_fulltext ON comment USING GIN(
+    to_tsvector('russian', content), to_tsvector('english', content)
+);
 -- +goose StatementEnd
 
 -- +goose Down

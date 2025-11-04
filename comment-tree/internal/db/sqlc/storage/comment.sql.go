@@ -97,6 +97,45 @@ func (q *Queries) GetPathByCommentID(ctx context.Context, id uuid.UUID) (sql.Nul
 	return path, err
 }
 
+const searchComments = `-- name: SearchComments :many
+SELECT id, content, parent_id, path, created_at FROM comment
+WHERE
+    to_tsvector('russian', content) @@ plainto_tsquery('russian', $1)
+OR
+    to_tsvector('english', content) @@ plainto_tsquery('english', $1)
+ORDER BY created_at DESC
+LIMIT 20
+`
+
+func (q *Queries) SearchComments(ctx context.Context, plaintoTsquery string) ([]Comment, error) {
+	rows, err := q.db.QueryContext(ctx, searchComments, plaintoTsquery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Comment
+	for rows.Next() {
+		var i Comment
+		if err := rows.Scan(
+			&i.ID,
+			&i.Content,
+			&i.ParentID,
+			&i.Path,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateCommentPath = `-- name: UpdateCommentPath :exec
 UPDATE comment
 SET path = $1

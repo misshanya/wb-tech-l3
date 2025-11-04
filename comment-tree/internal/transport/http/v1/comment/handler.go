@@ -13,6 +13,7 @@ type service interface {
 	Create(ctx context.Context, c *models.Comment) (*models.Comment, error)
 	Get(ctx context.Context, id uuid.UUID) ([]*models.Comment, error)
 	Delete(ctx context.Context, id uuid.UUID) error
+	Search(ctx context.Context, query string) ([]*models.Comment, error)
 }
 
 type handler struct {
@@ -31,4 +32,5 @@ func (h *handler) Setup(group *ginext.RouterGroup) {
 	group.POST("/", h.Create)
 	group.GET("/", h.Get)
 	group.DELETE("/:id", h.Delete)
+	group.GET("/search", h.Search)
 }
