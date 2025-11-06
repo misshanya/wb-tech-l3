@@ -31,6 +31,13 @@ func (h *handler) Cancel(c *ginext.Context) {
 			Message: err.Error(),
 		})
 		return
+	case errors.Is(err, errorz.NotificationIsNotCancellable):
+		zlog.Logger.Warn().Any("id", id).Msg("notification is not cancellable")
+		c.JSON(http.StatusConflict, &dto.HTTPStatus{
+			Code:    http.StatusConflict,
+			Message: err.Error(),
+		})
+		return
 	case err != nil:
 		zlog.Logger.Error().Any("id", id).Msg("failed to cancel")
 		c.JSON(http.StatusInternalServerError, &dto.HTTPStatus{
