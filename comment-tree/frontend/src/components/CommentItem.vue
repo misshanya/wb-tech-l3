@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { buildTree, type CommentNode } from '@/lib/tree'
+import type { CommentNode } from '@/lib/tree'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'

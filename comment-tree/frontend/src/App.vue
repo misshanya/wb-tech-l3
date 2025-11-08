@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { Comment } from './types'
 import { deleteComment, searchComments, createComment, getComments } from './services/api'
 import CommentItem from './components/CommentItem.vue'
+import NewThreadForm from './components/NewThreadForm.vue'
 import Input from './components/ui/input/Input.vue'
 import { buildTree } from './lib/tree'
 import type { CommentNode } from './lib/tree'
@@ -119,6 +120,8 @@ async function handleCommentExpand(parentID: string) {
   </div>
 
   <div class="max-w-3xl mx-auto mt-8">
+    <NewThreadForm class="mb-6" @submit="handleCommentCreate" />
+
     <Input v-model="searchQuery" placeholder="Поиск..." />
     <div class="comments">
       <div v-if="isLoading">Загрузка...</div>
