@@ -14,8 +14,12 @@ export async function getComments(parentId: string): Promise<Comment[]> {
   return data.comments
 }
 
-export async function searchComments(query: string): Promise<Comment[]> {
-  let url = `${API_BASE_URL}/comment/search?q=${query}`
+export async function searchComments(
+  query: string,
+  limit: number,
+  page: number,
+): Promise<Comment[]> {
+  let url = `${API_BASE_URL}/comment/search?q=${query}&limit=${limit}&page=${page}`
 
   const response = await fetch(url)
   if (!response.ok) {

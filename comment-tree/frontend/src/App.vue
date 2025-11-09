@@ -16,6 +16,11 @@ import {
 } from './components/ui/dropdown-menu'
 import { Icon } from '@iconify/vue'
 import { Button } from '@/components/ui/button'
+import { NumberField, NumberFieldContent } from './components/ui/number-field'
+import Label from './components/ui/label/Label.vue'
+import NumberFieldDecrement from './components/ui/number-field/NumberFieldDecrement.vue'
+import NumberFieldInput from './components/ui/number-field/NumberFieldInput.vue'
+import NumberFieldIncrement from './components/ui/number-field/NumberFieldIncrement.vue'
 
 const mode = useColorMode()
 
@@ -23,6 +28,9 @@ const isLoading = ref(false)
 
 const error = ref<string | null>(null)
 
+const searchPage = ref(1)
+const searchLimit = ref(10)
+const hasMoreComments = ref(true)
 const searchQuery = ref<string>('')
 const comments = ref<Comment[]>([])
 
@@ -39,12 +47,16 @@ watch(searchQuery, (newQuery) => {
   clearTimeout(debounceTimer)
 
   debounceTimer = setTimeout(async () => {
+    comments.value = []
+    searchPage.value = 1
+    hasMoreComments.value = true
     isLoading.value = true
     error.value = null
 
     try {
-      const result = await searchComments(newQuery)
-      comments.value = result
+      const result = await searchComments(newQuery, searchLimit.value, searchPage.value)
+      comments.value.push(...result)
+      searchPage.value++
     } catch (e) {
       error.value = (e as Error).message
       console.log(`failed to search comments: ${e}`)
@@ -53,6 +65,21 @@ watch(searchQuery, (newQuery) => {
     }
   }, 500)
 })
+
+async function handleLoadMoreComments() {
+  try {
+    const result = await searchComments(searchQuery.value, searchLimit.value, searchPage.value)
+    if (result.length === 0) {
+      hasMoreComments.value = false
+      return
+    }
+    comments.value.push(...result)
+    searchPage.value++
+  } catch (e) {
+    error.value = (e as Error).message
+    console.log(`failed to load more comments: ${e}`)
+  }
+}
 
 async function handleCommentDelete(commentID: string) {
   comments.value = comments.value.filter((comment) => comment.id !== commentID)
@@ -122,11 +149,21 @@ async function handleCommentExpand(parentID: string) {
   <div class="max-w-3xl mx-auto mt-8">
     <NewThreadForm class="mb-6" @submit="handleCommentCreate" />
 
+    <NumberField v-model="searchLimit" :min="0" class="mb-6">
+      <Label>Лимит</Label>
+      <NumberFieldContent>
+        <NumberFieldDecrement />
+        <NumberFieldInput />
+        <NumberFieldIncrement />
+      </NumberFieldContent>
+    </NumberField>
+
     <Input v-model="searchQuery" placeholder="Поиск..." />
+
     <div class="comments">
       <div v-if="isLoading">Загрузка...</div>
       <div v-else-if="error">{{ error }}</div>
-      <div v-else>
+      <div v-else class="grid w-full">
         <CommentItem
           class="mt-4"
           v-for="comment in commentsTree"
@@ -136,6 +173,13 @@ async function handleCommentExpand(parentID: string) {
           @reply="handleCommentCreate"
           @expand="handleCommentExpand"
         />
+
+        <Button
+          v-if="hasMoreComments && comments.length > 0"
+          @click="handleLoadMoreComments"
+          class="mt-8"
+          >Загрузить ещё</Button
+        >
       </div>
     </div>
   </div>
