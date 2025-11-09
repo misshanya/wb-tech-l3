@@ -123,63 +123,65 @@ async function handleCommentExpand(parentID: string) {
 </script>
 
 <template>
-  <div class="m-4">
-    <DropdownMenu>
-      <DropdownMenuTrigger as-child>
-        <Button variant="outline">
-          <Icon
-            icon="radix-icons:moon"
-            class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+  <div class="p-8">
+    <div>
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button variant="outline">
+            <Icon
+              icon="radix-icons:moon"
+              class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+            />
+            <Icon
+              icon="radix-icons:sun"
+              class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+            />
+            <span class="sr-only">Сменить тему</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem @click="mode = 'light'"> Светлая </DropdownMenuItem>
+          <DropdownMenuItem @click="mode = 'dark'"> Темная </DropdownMenuItem>
+          <DropdownMenuItem @click="mode = 'auto'"> Системная </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+
+    <div class="max-w-3xl mx-auto mt-8">
+      <NewThreadForm class="mb-6" @submit="handleCommentCreate" />
+
+      <NumberField v-model="searchLimit" :min="0" class="mb-6">
+        <Label>Лимит</Label>
+        <NumberFieldContent>
+          <NumberFieldDecrement />
+          <NumberFieldInput />
+          <NumberFieldIncrement />
+        </NumberFieldContent>
+      </NumberField>
+
+      <Input v-model="searchQuery" placeholder="Поиск..." />
+
+      <div class="comments">
+        <div v-if="isLoading">Загрузка...</div>
+        <div v-else-if="error">{{ error }}</div>
+        <div v-else class="grid w-full">
+          <CommentItem
+            class="mt-4"
+            v-for="comment in commentsTree"
+            :key="comment.id"
+            :comment="comment"
+            @delete="handleCommentDelete"
+            @reply="handleCommentCreate"
+            @expand="handleCommentExpand"
           />
-          <Icon
-            icon="radix-icons:sun"
-            class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-          />
-          <span class="sr-only">Сменить тему</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem @click="mode = 'light'"> Светлая </DropdownMenuItem>
-        <DropdownMenuItem @click="mode = 'dark'"> Темная </DropdownMenuItem>
-        <DropdownMenuItem @click="mode = 'auto'"> Системная </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  </div>
 
-  <div class="max-w-3xl mx-auto mt-8">
-    <NewThreadForm class="mb-6" @submit="handleCommentCreate" />
-
-    <NumberField v-model="searchLimit" :min="0" class="mb-6">
-      <Label>Лимит</Label>
-      <NumberFieldContent>
-        <NumberFieldDecrement />
-        <NumberFieldInput />
-        <NumberFieldIncrement />
-      </NumberFieldContent>
-    </NumberField>
-
-    <Input v-model="searchQuery" placeholder="Поиск..." />
-
-    <div class="comments">
-      <div v-if="isLoading">Загрузка...</div>
-      <div v-else-if="error">{{ error }}</div>
-      <div v-else class="grid w-full">
-        <CommentItem
-          class="mt-4"
-          v-for="comment in commentsTree"
-          :key="comment.id"
-          :comment="comment"
-          @delete="handleCommentDelete"
-          @reply="handleCommentCreate"
-          @expand="handleCommentExpand"
-        />
-
-        <Button
-          v-if="hasMoreComments && comments.length > 0"
-          @click="handleLoadMoreComments"
-          class="mt-8"
+          <Button
+            v-if="hasMoreComments && comments.length > 0"
+            @click="handleLoadMoreComments"
+            class="mt-8"
           >Загрузить ещё</Button
-        >
+          >
+        </div>
       </div>
     </div>
   </div>
