@@ -71,7 +71,10 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	)
 
 	imageService := imageservice.New(minioImageRepo, pgImageRepo, kafkaProducer)
-	imageProcessorService := imageprocessorservice.New(pgImageRepo, minioImageRepo, a.cfg.ImageProcessing.ResizeFactor)
+	imageProcessorService, err := imageprocessorservice.New(pgImageRepo, minioImageRepo, a.cfg.ImageProcessing.ResizeFactor, a.cfg.ImageProcessing.WatermarkPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init image processor: %w", err)
+	}
 
 	imageHandler := imagehandler.New(imageService)
 	a.kafkaConsumerHandler = kafkaconsumer.New(imageProcessorService,

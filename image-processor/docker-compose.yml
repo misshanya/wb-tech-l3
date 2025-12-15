@@ -35,6 +35,9 @@ services:
 
       IMAGE_PROCESSING_TIMEOUT: "${IMAGE_PROCESSING_TIMEOUT}"
       IMAGE_PROCESSING_RESIZE_FACTOR: "${IMAGE_PROCESSING_RESIZE_FACTOR}"
+      IMAGE_PROCESSING_WATERMARK_PATH: "/app/watermark.png"
+    volumes:
+      - ./watermark.png:/app/watermark.png:Z,ro
     restart: unless-stopped
     depends_on:
       postgres:

@@ -45,19 +45,25 @@ func (s *service) ProcessImage(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("failed to get format from filename: %w", err)
 	}
 
-	// Resize process
+	// Process image
 	var buf bytes.Buffer
-	resized := imaging.Resize(img, img.Bounds().Dx()/s.resizeFactor, img.Bounds().Dy()/s.resizeFactor, imaging.Lanczos)
-	err = imaging.Encode(&buf, resized, format)
+	img = imaging.Resize(img, img.Bounds().Dx()/s.resizeFactor, img.Bounds().Dy()/s.resizeFactor, imaging.Lanczos)
+
+	// Resize watermark to fit proportionally in the image
+	watermark := imaging.Resize(s.watermark, img.Bounds().Dx()/2, img.Bounds().Dy()/2, imaging.Lanczos)
+
+	img = imaging.OverlayCenter(img, watermark, 0.5)
+
+	err = imaging.Encode(&buf, img, format)
 	if err != nil {
 		return fmt.Errorf("failed to encode image: %w", err)
 	}
 
-	// Save resized to storage
-	resizedImageFilename := fmt.Sprintf("%s_resized", id.String())
-	err = s.imageStorage.Upload(ctx, &buf, int64(buf.Len()), resizedImageFilename, contentType)
+	// Save result to the storage
+	processedImageFilename := fmt.Sprintf("%s_processed", id.String())
+	err = s.imageStorage.Upload(ctx, &buf, int64(buf.Len()), processedImageFilename, contentType)
 	if err != nil {
-		return fmt.Errorf("failed to save resized image: %w", err)
+		return fmt.Errorf("failed to save processed image: %w", err)
 	}
 
 	imageInfo.Status = models.StatusDone

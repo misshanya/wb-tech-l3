@@ -2,8 +2,11 @@ package imageprocessor
 
 import (
 	"context"
+	"fmt"
+	"image"
 	"io"
 
+	"github.com/disintegration/imaging"
 	"github.com/google/uuid"
 	"github.com/misshanya/wb-tech-l3/image-processor/internal/models"
 )
@@ -22,16 +25,24 @@ type service struct {
 	repo         repo
 	imageStorage imageStorage
 	resizeFactor int
+	watermark    image.Image
 }
 
 func New(
 	repo repo,
 	imageStorage imageStorage,
 	resizeFactor int,
-) *service {
+	watermarkPath string,
+) (*service, error) {
+	watermark, err := imaging.Open(watermarkPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open watermark: %w", err)
+	}
+
 	return &service{
 		repo:         repo,
 		imageStorage: imageStorage,
 		resizeFactor: resizeFactor,
-	}
+		watermark:    watermark,
+	}, nil
 }

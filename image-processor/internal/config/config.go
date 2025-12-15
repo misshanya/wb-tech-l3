@@ -55,8 +55,9 @@ type kafkaConsumer struct {
 }
 
 type imageProcessing struct {
-	Timeout      time.Duration
-	ResizeFactor int
+	Timeout       time.Duration
+	ResizeFactor  int
+	WatermarkPath string
 }
 
 func New() *Config {
@@ -100,8 +101,9 @@ func New() *Config {
 			},
 		},
 		ImageProcessing: imageProcessing{
-			Timeout:      c.GetDuration("image_processing.timeout"),
-			ResizeFactor: c.GetInt("image_processing.resize_factor"),
+			Timeout:       c.GetDuration("image_processing.timeout"),
+			ResizeFactor:  c.GetInt("image_processing.resize_factor"),
+			WatermarkPath: c.GetString("image_processing.watermark_path"),
 		},
 	}
 
