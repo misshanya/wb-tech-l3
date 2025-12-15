@@ -4,12 +4,14 @@ import (
 	"context"
 	"io"
 
+	"github.com/google/uuid"
 	"github.com/misshanya/wb-tech-l3/image-processor/internal/models"
 	"github.com/wb-go/wbf/ginext"
 )
 
 type service interface {
 	Upload(ctx context.Context, content io.Reader, size int64, filename, contentType string) (*models.Image, error)
+	GetProcessed(ctx context.Context, id uuid.UUID) (io.ReadCloser, string, models.Status, int64, error)
 }
 
 type handler struct {
@@ -24,4 +26,5 @@ func New(s service) *handler {
 
 func (h *handler) Setup(group *ginext.RouterGroup) {
 	group.POST("/upload", h.Upload)
+	group.GET("/image/:id", h.GetProcessed)
 }

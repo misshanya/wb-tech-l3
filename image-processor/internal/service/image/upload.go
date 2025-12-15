@@ -1,4 +1,4 @@
-package imageuploader
+package image
 
 import (
 	"context"

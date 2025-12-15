@@ -1,4 +1,4 @@
-package imageuploader
+package image
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 type imageStorage interface {
 	Upload(ctx context.Context, file io.Reader, size int64, filename, contentType string) error
+	Get(ctx context.Context, filename string) (io.ReadCloser, string, int64, error)
 }
 
 type kafkaProducer interface {
@@ -19,6 +20,7 @@ type kafkaProducer interface {
 type imageRepo interface {
 	Create(ctx context.Context, filename string) (*models.Image, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, newStatus string) error
+	Get(ctx context.Context, id uuid.UUID) (*models.Image, error)
 }
 
 type service struct {
