@@ -108,6 +108,11 @@ func (a *App) Stop() error {
 		stopErr = errors.Join(stopErr, fmt.Errorf("failed to close RabbitMQ connection: %w", err))
 	}
 
+	zlog.Logger.Info().Msg("Closing database connection...")
+	if err := a.pgConn.Master.Close(); err != nil {
+		stopErr = errors.Join(stopErr, fmt.Errorf("failed to close database connection: %w", err))
+	}
+
 	if stopErr != nil {
 		return stopErr
 	}
