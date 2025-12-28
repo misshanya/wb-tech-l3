@@ -18,7 +18,7 @@ func (s *service) Upload(ctx context.Context, content io.Reader, size int64, fil
 		return nil, err
 	}
 
-	err = s.kafkaProducer.SendImage(ctx, imageInfo.ID)
+	err = s.kafkaProducer.SendImage(imageInfo.ID)
 	if err != nil {
 		return nil, err
 	}

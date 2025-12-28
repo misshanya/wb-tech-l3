@@ -34,6 +34,7 @@ type App struct {
 	pgConn               *dbpg.DB
 	minioClient          *minio.Client
 	kafkaProducer        *kafka.Producer
+	kafkaProducerCustom  *kafkaproducer.Producer
 	kafkaConsumer        *kafka.Consumer
 	kafkaConsumerHandler *kafkaconsumer.Consumer
 }
@@ -63,14 +64,16 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	minioImageRepo := minioimagerepo.New(a.minioClient, a.cfg.MinIO.BucketName)
 	pgImageRepo := pgimagerepo.New(queries)
 
-	kafkaProducer := kafkaproducer.New(
+	a.kafkaProducerCustom = kafkaproducer.New(
 		a.kafkaProducer,
 		a.cfg.Kafka.Producer.Retry.Attempts,
 		a.cfg.Kafka.Producer.Retry.Delay,
 		a.cfg.Kafka.Producer.Retry.Backoff,
+		a.cfg.Kafka.Producer.BufferSize,
+		a.cfg.Kafka.Producer.NumWorkers,
 	)
 
-	imageService := imageservice.New(minioImageRepo, pgImageRepo, kafkaProducer)
+	imageService := imageservice.New(minioImageRepo, pgImageRepo, a.kafkaProducerCustom)
 	imageProcessorService, err := imageprocessorservice.New(pgImageRepo, minioImageRepo, a.cfg.ImageProcessing.ResizeFactor, a.cfg.ImageProcessing.WatermarkPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init image processor: %w", err)
@@ -114,6 +117,7 @@ func (a *App) Stop() error {
 	}
 
 	zlog.Logger.Info().Msg("Stopping kafka producer...")
+	a.kafkaProducerCustom.Stop()
 	if err := a.kafkaProducer.Close(); err != nil {
 		stopErr = errors.Join(stopErr, fmt.Errorf("failed to stop kafka producer: %w", err))
 	}

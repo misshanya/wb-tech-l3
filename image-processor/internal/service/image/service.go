@@ -14,7 +14,7 @@ type imageStorage interface {
 }
 
 type kafkaProducer interface {
-	SendImage(ctx context.Context, id uuid.UUID) error
+	SendImage(id uuid.UUID) error
 }
 
 type imageRepo interface {

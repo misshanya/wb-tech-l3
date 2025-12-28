@@ -46,7 +46,9 @@ type kafka struct {
 }
 
 type kafkaProducer struct {
-	Retry retry
+	Retry      retry
+	BufferSize int
+	NumWorkers int
 }
 
 type kafkaConsumer struct {
@@ -90,6 +92,8 @@ func New() *Config {
 					Delay:    c.GetDuration("kafka.producer.retry.delay"),
 					Backoff:  c.GetFloat64("kafka.producer.retry.backoff"),
 				},
+				BufferSize: c.GetInt("kafka.producer.buffer.size"),
+				NumWorkers: c.GetInt("kafka.producer.num_workers"),
 			},
 			Consumer: kafkaConsumer{
 				Retry: retry{
