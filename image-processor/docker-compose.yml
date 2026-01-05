@@ -113,13 +113,18 @@ services:
   kafka-init:
     container_name: image-processor_kafka-init
     image: confluentinc/cp-kafka:8.0.3
-    entrypoint: [ "/bin/sh", "-c" ]
-    command: |
-      "
-      /bin/kafka-topics --bootstrap-server kafka:9093 \
-      --create --if-not-exists --topic ${KAFKA_TOPIC} \
-      --replication-factor 1 --partitions 1
-      "
+    environment:
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        kafka-topics --bootstrap-server kafka:9093 \
+        --create \
+        --if-not-exists \
+        --topic $$KAFKA_TOPIC \
+        --replication-factor 1 \
+        --partitions 1
     depends_on:
       kafka:
         condition: service_healthy
