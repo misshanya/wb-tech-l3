@@ -9,7 +9,7 @@ import (
 type Config struct {
 	Server          server
 	Postgres        postgres
-	MinIO           minio
+	S3              s3
 	Kafka           kafka
 	ImageProcessing imageProcessing
 }
@@ -25,10 +25,11 @@ type postgres struct {
 	ConnMaxLifetime time.Duration
 }
 
-type minio struct {
+type s3 struct {
 	Endpoint   string
 	AccessKey  string
 	SecretKey  string
+	Region     string
 	BucketName string
 }
 
@@ -77,11 +78,12 @@ func New() *Config {
 			MaxIdleConns:    c.GetInt("postgres.max_idle_conns"),
 			ConnMaxLifetime: c.GetDuration("postgres.conn_max_lifetime"),
 		},
-		MinIO: minio{
-			Endpoint:   c.GetString("minio.endpoint"),
-			AccessKey:  c.GetString("minio.access_key"),
-			SecretKey:  c.GetString("minio.secret_key"),
-			BucketName: c.GetString("minio.bucket_name"),
+		S3: s3{
+			Endpoint:   c.GetString("s3.endpoint"),
+			AccessKey:  c.GetString("s3.access_key"),
+			SecretKey:  c.GetString("s3.secret_key"),
+			Region:     c.GetString("s3.region"),
+			BucketName: c.GetString("s3.bucket_name"),
 		},
 		Kafka: kafka{
 			Addr:  c.GetString("kafka.addr"),

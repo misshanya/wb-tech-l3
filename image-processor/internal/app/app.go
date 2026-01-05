@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 	"github.com/gin-gonic/gin"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/misshanya/wb-tech-l3/image-processor/internal/config"
 	"github.com/misshanya/wb-tech-l3/image-processor/internal/db"
 	"github.com/misshanya/wb-tech-l3/image-processor/internal/db/sqlc/storage"
@@ -17,8 +19,8 @@ import (
 	"github.com/wb-go/wbf/kafka"
 	"github.com/wb-go/wbf/zlog"
 
-	minioimagerepo "github.com/misshanya/wb-tech-l3/image-processor/internal/repository/minio/image"
 	pgimagerepo "github.com/misshanya/wb-tech-l3/image-processor/internal/repository/postgres/image"
+	s3imagerepo "github.com/misshanya/wb-tech-l3/image-processor/internal/repository/s3/image"
 	imageservice "github.com/misshanya/wb-tech-l3/image-processor/internal/service/image"
 	imageprocessorservice "github.com/misshanya/wb-tech-l3/image-processor/internal/service/image_processor"
 	imagehandler "github.com/misshanya/wb-tech-l3/image-processor/internal/transport/http/v1/image"
@@ -32,7 +34,7 @@ type App struct {
 	ginextEngine         *ginext.Engine
 	httpSrv              *http.Server
 	pgConn               *dbpg.DB
-	minioClient          *minio.Client
+	s3Client             *s3.Client
 	kafkaProducer        *kafka.Producer
 	kafkaProducerCustom  *kafkaproducer.Producer
 	kafkaConsumer        *kafka.Consumer
@@ -53,15 +55,15 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("failed to migrate db: %w", err)
 	}
 
-	if err := a.initMinIO(ctx); err != nil {
-		return nil, fmt.Errorf("failed to init minio: %w", err)
+	if err := a.initS3(ctx); err != nil {
+		return nil, fmt.Errorf("failed to init s3: %w", err)
 	}
 
 	a.initKafka()
 
 	queries := storage.New(a.pgConn.Master)
 
-	minioImageRepo := minioimagerepo.New(a.minioClient, a.cfg.MinIO.BucketName)
+	minioImageRepo := s3imagerepo.New(a.s3Client, a.cfg.S3.BucketName)
 	pgImageRepo := pgimagerepo.New(queries)
 
 	a.kafkaProducerCustom = kafkaproducer.New(
@@ -159,23 +161,33 @@ func (a *App) migrateDB() error {
 	return db.Migrate(a.pgConn.Master)
 }
 
-func (a *App) initMinIO(ctx context.Context) error {
-	client, err := minio.New(a.cfg.MinIO.Endpoint, &minio.Options{
-		Creds: credentials.NewStaticV4(a.cfg.MinIO.AccessKey, a.cfg.MinIO.SecretKey, ""),
+func (a *App) initS3(ctx context.Context) error {
+	cfg := aws.Config{
+		Region:       a.cfg.S3.Region,
+		BaseEndpoint: aws.String(a.cfg.S3.Endpoint),
+		Credentials: aws.NewCredentialsCache(
+			credentials.NewStaticCredentialsProvider(
+				a.cfg.S3.AccessKey,
+				a.cfg.S3.SecretKey,
+				""),
+		),
+	}
+
+	a.s3Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.UsePathStyle = true
+	})
+
+	_, err := a.s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(a.cfg.S3.BucketName),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create minio client: %w", err)
-	}
-	a.minioClient = client
-	exists, err := client.BucketExists(ctx, a.cfg.MinIO.BucketName)
-	if err != nil {
-		return fmt.Errorf("failed to check if bucket exists: %w", err)
-	}
-	if !exists {
-		if err := client.MakeBucket(ctx, a.cfg.MinIO.BucketName, minio.MakeBucketOptions{}); err != nil {
-			return fmt.Errorf("failed to create bucket: %w", err)
+		var apiError smithy.APIError
+		if errors.As(err, &apiError) && apiError.ErrorCode() == "BucketAlreadyOwnedByYou" {
+			return nil
 		}
+		return fmt.Errorf("failed to create s3 bucket: %w", err)
 	}
+
 	return nil
 }
 
